@@ -1,0 +1,102 @@
+name: Auto Release
+
+on:
+  push:
+
+permissions:
+  contents: write
+  packages: write
+  actions: write
+
+env:
+  APP_NAME: chat2api
+
+jobs:
+  release:
+    if: startsWith(github.event.head_commit.message, 'release-v')
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          check-latest: true
+
+      - name: Build Binary
+        run: |
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ${{ env.APP_NAME }} -a -ldflags '-s -w -extldflags "-static"' ./cmd && rm -rf artifact && mkdir -p artifact && cp ${{ env.APP_NAME }} artifact/${{ env.APP_NAME }} && cd artifact && tar -czvf ../${{ env.APP_NAME }}-linux-amd64.tar.gz * && cd ..
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -o ${{ env.APP_NAME }} -a -ldflags '-s -w -extldflags "-static"' ./cmd && rm -rf artifact && mkdir -p artifact && cp ${{ env.APP_NAME }} artifact/${{ env.APP_NAME }} && cd artifact && tar -czvf ../${{ env.APP_NAME }}-darwin-amd64.tar.gz * && cd ..
+          GOOS=freebsd GOARCH=amd64 CGO_ENABLED=0 go build -o ${{ env.APP_NAME }} -a -ldflags '-s -w -extldflags "-static"' ./cmd && rm -rf artifact && mkdir -p artifact && cp ${{ env.APP_NAME }} artifact/${{ env.APP_NAME }} && cd artifact && tar -czvf ../${{ env.APP_NAME }}-freebsd-amd64.tar.gz * && cd ..
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o ${{ env.APP_NAME }} -a -ldflags '-s -w -extldflags "-static"' ./cmd && rm -rf artifact && mkdir -p artifact && cp ${{ env.APP_NAME }} artifact/${{ env.APP_NAME }}.exe && cd artifact && tar -czvf ../${{ env.APP_NAME }}-windows-amd64.tar.gz * && cd ..
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ env.APP_NAME }}-pre-built.zip
+          path: |
+            ${{ env.APP_NAME }}-windows-amd64.tar.gz
+            ${{ env.APP_NAME }}-linux-amd64.tar.gz
+            ${{ env.APP_NAME }}-darwin-amd64.tar.gz
+            ${{ env.APP_NAME }}-freebsd-amd64.tar.gz
+
+      - name: Get Release Name
+        shell: bash
+        id: grn
+        env:
+          RELEASE_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          release_tag="$(printf '%s' "$RELEASE_MESSAGE" | head -n 1 | awk '{print $1}')"
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Generate Changelog
+        id: changelog
+        env:
+          RELEASE_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          {
+            echo "${{ steps.grn.outputs.tag }}"
+            echo
+            echo "Commit: ${{ github.sha }}"
+            echo
+            printf '%s\n' "$RELEASE_MESSAGE"
+          } > CHANGELOG.md
+
+      - name: Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          # tag_name: 使用 commit message 第一段，例如 release-v1.0.0
+          tag_name: ${{ steps.grn.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          # release_name: 使用 release tag
+          name: ${{ steps.grn.outputs.tag }}
+          # body: 使用 changelog
+          body_path: CHANGELOG.md
+          # 草稿
+          draft: false
+          # 预发布
+          prerelease: false
+          # 自动生成 release notes
+          generate_release_notes: true
+          # 上传文件
+          files: |
+            ${{ env.APP_NAME }}-linux-amd64.tar.gz
+            ${{ env.APP_NAME }}-windows-amd64.tar.gz
+            ${{ env.APP_NAME }}-darwin-amd64.tar.gz
+            ${{ env.APP_NAME }}-freebsd-amd64.tar.gz
+
+      - name: Delete Workflow Runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 1
+          keep_minimum_runs: 8

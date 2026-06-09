@@ -1,0 +1,10 @@
+services:
+  chat2api:
+    container_name: chat2api
+    image: ghcr.io/aurorax-neo/chat2api
+    ports:
+      - "7846:3040"
+    volumes:
+      - .chat2api/conf:/app/conf
+      - .chat2api/logs:/app/logs
+    restart: always
