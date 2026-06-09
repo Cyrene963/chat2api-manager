@@ -1,0 +1,12 @@
+.git
+.github
+.chat2api
+logs
+*.log
+*.exe
+*.test
+*.out
+.env
+node_modules
+work
+target

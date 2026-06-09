@@ -26,6 +26,8 @@ FROM alpine:latest
 # Set the working directory in the new container
 WORKDIR /app
 
+RUN apk add --no-cache ca-certificates tzdata
+
 # Copy the statically-linked binary into the new container
 COPY --from=builder /app/chat2api /app/chat2api
 

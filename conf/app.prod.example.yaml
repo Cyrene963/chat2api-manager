@@ -1,0 +1,29 @@
+log_level: info
+log_path: logs
+log_file: app.log
+bind: 0.0.0.0
+port: 3040
+
+auth:
+  # Local API keys used by NewAPI/sub2api and the WebUI admin API.
+  access_tokens:
+    - sk-change-me
+  # Advanced direct-token mode. Keep empty unless you know why you need it.
+  access_token_prefix: []
+
+# Global proxy. Leave empty when the server can reach chatgpt.com directly.
+proxy: ""
+
+chatgpt_base_url: https://chatgpt.com
+
+# ChatGPT Web account pool. Replace access_token with real ChatGPT Web access tokens.
+chatgpts:
+  - id_token: ""
+    access_token: ""
+    refresh_token: ""
+    account_id: ""
+    last_refresh: ""
+    email: ""
+    type: pro
+    expired: ""
+    proxy: ""

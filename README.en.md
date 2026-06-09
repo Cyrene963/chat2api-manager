@@ -27,6 +27,71 @@ NewAPI / sub2api / OpenAI-compatible client
 
 ## Quick Start
 
+### Linux Server Docker Deployment
+
+Docker Compose is the recommended deployment path for Linux servers.
+
+```bash
+git clone https://github.com/Cyrene963/chat2api-manager.git
+cd chat2api-manager
+chmod +x scripts/deploy-linux.sh
+./scripts/deploy-linux.sh
+```
+
+The script creates:
+
+```text
+.chat2api/conf/app.prod.yaml
+.chat2api/logs/
+```
+
+If `openssl` is available, it also generates a local API key. After the first run, edit:
+
+```bash
+nano .chat2api/conf/app.prod.yaml
+```
+
+Important fields:
+
+```yaml
+auth:
+  access_tokens:
+    - sk-your-local-key
+
+chatgpts:
+  - access_token: your-chatgpt-web-access-token
+    type: pro
+```
+
+Restart after editing:
+
+```bash
+docker compose restart
+```
+
+Default port:
+
+```text
+3040
+```
+
+Use a different host port:
+
+```bash
+CHAT2API_PORT=7846 docker compose up -d --build
+```
+
+URLs:
+
+```text
+WebUI: http://SERVER_IP:3040/admin
+OpenAI Base URL: http://SERVER_IP:3040/v1
+```
+
+Open the port in your firewall/security group. In production, expose it only to a private network or place it behind Nginx/Caddy/Cloudflare Access or another authentication layer.
+
+### Local Source Run
+
 Copy the demo config:
 
 ```bash
@@ -138,18 +203,24 @@ View or edit the generated YAML config directly.
 Use an OpenAI-compatible channel:
 
 ```text
-Base URL: http://127.0.0.1:3040/v1
+Base URL: http://SERVER_IP:3040/v1
 API Key: sk-your-local-key
 Model: gpt-5.5-pro
 ```
 
-If NewAPI/sub2api runs in Docker, use:
+If NewAPI/sub2api runs on the same Linux host and is not containerized, you can use:
+
+```text
+http://127.0.0.1:3040/v1
+```
+
+If NewAPI/sub2api runs in Docker, `127.0.0.1` points to the container itself. You can try:
 
 ```text
 http://host.docker.internal:3040/v1
 ```
 
-or the host LAN IP.
+On Linux Docker, `host.docker.internal` may not be enabled by default. The host LAN IP or a shared Docker network service name is usually more reliable.
 
 ## Pro Models And Extended Thinking
 

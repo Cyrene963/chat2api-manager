@@ -27,6 +27,71 @@ NewAPI / sub2api / 其他 OpenAI 兼容客户端
 
 ## 快速启动
 
+### Linux 服务器 Docker 部署
+
+推荐在 Linux 服务器上用 Docker Compose 运行一体版。
+
+```bash
+git clone https://github.com/Cyrene963/chat2api-manager.git
+cd chat2api-manager
+chmod +x scripts/deploy-linux.sh
+./scripts/deploy-linux.sh
+```
+
+脚本会自动创建：
+
+```text
+.chat2api/conf/app.prod.yaml
+.chat2api/logs/
+```
+
+如果系统安装了 `openssl`，脚本会自动生成一个本地 API key。第一次部署后请编辑：
+
+```bash
+nano .chat2api/conf/app.prod.yaml
+```
+
+需要重点改：
+
+```yaml
+auth:
+  access_tokens:
+    - sk-your-local-key
+
+chatgpts:
+  - access_token: your-chatgpt-web-access-token
+    type: pro
+```
+
+改完重启：
+
+```bash
+docker compose restart
+```
+
+默认端口：
+
+```text
+3040
+```
+
+如果想换宿主机端口：
+
+```bash
+CHAT2API_PORT=7846 docker compose up -d --build
+```
+
+访问：
+
+```text
+WebUI: http://服务器IP:3040/admin
+OpenAI Base URL: http://服务器IP:3040/v1
+```
+
+服务器安全组/防火墙需要放行对应端口。生产环境建议只对内网开放，或者放在 Nginx/Caddy/Cloudflare Access 等额外鉴权后面。
+
+### 本地源码运行
+
 复制配置模板：
 
 ```bash
@@ -165,9 +230,15 @@ auto
 在 NewAPI/sub2api 里添加 OpenAI 兼容渠道：
 
 ```text
-Base URL: http://127.0.0.1:3040/v1
+Base URL: http://服务器IP:3040/v1
 API Key: sk-your-local-key
 Model: gpt-5.5-pro
+```
+
+如果 NewAPI/sub2api 和 chat2api-manager 在同一台 Linux 服务器上，并且 NewAPI/sub2api 不是 Docker 容器，可以用：
+
+```text
+http://127.0.0.1:3040/v1
 ```
 
 如果 NewAPI/sub2api 在 Docker 里运行，`127.0.0.1` 指的是容器自己，需要改成：
@@ -176,7 +247,9 @@ Model: gpt-5.5-pro
 http://host.docker.internal:3040/v1
 ```
 
-或者主机的局域网 IP：
+Linux Docker 环境里 `host.docker.internal` 不一定默认可用，更稳的是使用宿主机局域网 IP，或者把两个服务放进同一个 Docker network 后使用服务名。
+
+宿主机局域网 IP 示例：
 
 ```text
 http://192.168.x.x:3040/v1

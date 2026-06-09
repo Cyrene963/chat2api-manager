@@ -1,10 +1,15 @@
 services:
   chat2api:
-    container_name: chat2api
-    image: ghcr.io/aurorax-neo/chat2api
+    container_name: chat2api-manager
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chat2api-manager:local
+    environment:
+      ENV: prod
     ports:
-      - "7846:3040"
+      - "${CHAT2API_PORT:-3040}:3040"
     volumes:
-      - .chat2api/conf:/app/conf
-      - .chat2api/logs:/app/logs
-    restart: always
+      - ./.chat2api/conf:/app/conf
+      - ./.chat2api/logs:/app/logs
+    restart: unless-stopped
