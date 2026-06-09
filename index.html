@@ -1,0 +1,1406 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>chat2api manager</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --surface-2: #eef2f6;
+      --line: #d8e0e8;
+      --line-strong: #aebdca;
+      --text: #17202a;
+      --muted: #637083;
+      --accent: #0f766e;
+      --accent-2: #2563eb;
+      --danger: #b42318;
+      --warn: #b54708;
+      --ok: #067647;
+      --shadow: 0 12px 28px rgba(22, 34, 51, .08);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+    button, input, textarea, select {
+      font: inherit;
+    }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+    input, select {
+      height: 34px;
+      padding: 0 10px;
+    }
+    textarea {
+      min-height: 120px;
+      padding: 10px;
+      resize: vertical;
+      line-height: 1.45;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, .12);
+    }
+    label {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button:hover { border-color: var(--accent); }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    button.blue {
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+      color: #fff;
+    }
+    button.danger {
+      color: var(--danger);
+      border-color: #efb5ae;
+    }
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: minmax(180px, 260px) minmax(360px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, .94);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .brand {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    .subline {
+      color: var(--muted);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .connect {
+      display: grid;
+      grid-template-columns: 1.3fr .9fr 1.1fr;
+      gap: 8px;
+      align-items: end;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: end;
+    }
+    .statusbar {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .metric {
+      min-height: 54px;
+      padding: 10px 14px;
+      background: var(--surface);
+      display: grid;
+      align-content: center;
+      gap: 2px;
+      min-width: 0;
+    }
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .metric strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+    }
+    .main {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      min-height: 0;
+    }
+    .nav {
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+      padding: 14px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+    .tab {
+      justify-content: flex-start;
+      border-color: transparent;
+      background: transparent;
+      width: 100%;
+    }
+    .tab.active {
+      background: #e8f5f2;
+      border-color: #b9ded7;
+      color: var(--accent);
+    }
+    .content {
+      padding: 16px 18px 24px;
+      display: grid;
+      gap: 16px;
+      min-width: 0;
+      align-content: start;
+    }
+    .pane { display: none; }
+    .pane.active {
+      display: grid;
+      gap: 16px;
+    }
+    .band {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+    .band-head {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 48px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    h2 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+    .band-body {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+    .secret-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 34px;
+      gap: 8px;
+      align-items: end;
+    }
+    .small-icon {
+      width: 34px;
+      padding: 0;
+      font-weight: 800;
+    }
+    .hint {
+      min-height: 16px;
+      margin-top: 3px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      border: 1px solid #b9ded7;
+      background: #e8f5f2;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .badge.warn {
+      border-color: #ffd6a8;
+      background: #fff3e5;
+      color: var(--warn);
+    }
+    .badge.err {
+      border-color: #efb5ae;
+      background: #fff1f0;
+      color: var(--danger);
+    }
+    .accounts {
+      display: grid;
+      gap: 10px;
+    }
+    .account {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    .account-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 130px auto auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--line);
+    }
+    .account-title {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      min-width: 0;
+      font-weight: 800;
+    }
+    .account-title span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .account-body {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+    .empty {
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      padding: 24px;
+      background: rgba(255, 255, 255, .65);
+      color: var(--muted);
+      text-align: center;
+    }
+    .result {
+      white-space: pre-wrap;
+      overflow: auto;
+      max-height: 420px;
+      min-height: 140px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #101828;
+      color: #eef4ff;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      max-width: min(520px, calc(100vw - 32px));
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #101828;
+      color: #fff;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, .24);
+      transform: translateY(24px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .hidden { display: none !important; }
+    @media (max-width: 1060px) {
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+      .connect, .statusbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      .main {
+        grid-template-columns: 1fr;
+      }
+      .nav {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .tab {
+        justify-content: center;
+      }
+    }
+    @media (max-width: 680px) {
+      .topbar, .content {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      .connect, .statusbar, .grid-2, .grid-3, .account-head {
+        grid-template-columns: 1fr;
+      }
+      .nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 10px;
+      }
+      button {
+        width: 100%;
+      }
+      .small-icon {
+        width: 34px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <h1>chat2api manager</h1>
+        <div class="subline" id="modeLine">Local static console</div>
+      </div>
+      <div class="connect">
+        <label>Profile
+          <select id="profileSelect"></select>
+        </label>
+        <label>Backend URL
+          <input id="backendUrl" spellcheck="false" placeholder="http://127.0.0.1:3040">
+        </label>
+        <label>API key
+          <input id="apiKey" type="password" spellcheck="false" autocomplete="off" placeholder="sk-...">
+        </label>
+      </div>
+      <div class="actions">
+        <button id="connectBtn" class="primary" type="button">Connect</button>
+        <button id="saveProfileBtn" type="button">Save Profile</button>
+        <button id="deleteProfileBtn" class="danger" type="button">Delete</button>
+      </div>
+    </header>
+
+    <section class="statusbar">
+      <div class="metric"><span>Connection</span><strong id="connState">Idle</strong></div>
+      <div class="metric"><span>Account Pool</span><strong id="poolState">-</strong></div>
+      <div class="metric"><span>Admin API</span><strong id="adminState">Not checked</strong></div>
+      <div class="metric"><span>Config Source</span><strong id="sourceState">Browser draft</strong></div>
+    </section>
+
+    <main class="main">
+      <nav class="nav">
+        <button class="tab active" data-tab="server" type="button">Server</button>
+        <button class="tab" data-tab="accounts" type="button">Accounts</button>
+        <button class="tab" data-tab="test" type="button">Test</button>
+        <button class="tab" data-tab="raw" type="button">Raw YAML</button>
+      </nav>
+
+      <div class="content">
+        <section class="pane active" id="pane-server">
+          <div class="band">
+            <div class="band-head">
+              <h2>Config</h2>
+              <div class="inline">
+                <button id="loadRemoteBtn" type="button">Load Remote</button>
+                <button id="saveRemoteBtn" class="blue" type="button">Save Remote</button>
+                <button id="openFileBtn" type="button">Open YAML</button>
+                <button id="saveFileBtn" type="button">Save YAML</button>
+                <input id="fileInput" class="hidden" type="file" accept=".yaml,.yml,.json,application/json,text/yaml">
+              </div>
+            </div>
+            <div class="band-body">
+              <div class="grid-3">
+                <label>Bind
+                  <input id="bind" placeholder="127.0.0.1">
+                </label>
+                <label>Port
+                  <input id="port" inputmode="numeric" placeholder="3040">
+                </label>
+                <label>Log level
+                  <select id="logLevel">
+                    <option value="debug">debug</option>
+                    <option value="info">info</option>
+                    <option value="warn">warn</option>
+                    <option value="error">error</option>
+                  </select>
+                </label>
+              </div>
+              <div class="grid-2">
+                <label>Global proxy
+                  <input id="proxy" spellcheck="false" placeholder="http://127.0.0.1:7890">
+                </label>
+                <label>ChatGPT base URL
+                  <input id="chatgptBaseUrl" spellcheck="false" placeholder="https://chatgpt.com">
+                </label>
+              </div>
+              <div class="grid-2">
+                <label>Log path
+                  <input id="logPath" spellcheck="false" placeholder="logs">
+                </label>
+                <label>Log file
+                  <input id="logFile" spellcheck="false" placeholder="app.log">
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="band">
+            <div class="band-head">
+              <h2>Local API Keys</h2>
+              <button id="addAuthBtn" type="button">Add</button>
+            </div>
+            <div class="band-body" id="authList"></div>
+          </div>
+
+          <div class="band">
+            <div class="band-head">
+              <h2>Direct Token Prefixes</h2>
+              <button id="addPrefixBtn" type="button">Add</button>
+            </div>
+            <div class="band-body" id="prefixList"></div>
+          </div>
+        </section>
+
+        <section class="pane" id="pane-accounts">
+          <div class="band">
+            <div class="band-head">
+              <h2>Account Pool</h2>
+              <div class="inline">
+                <button id="addAccountBtn" class="primary" type="button">Add Account</button>
+                <button id="downloadJsonBtn" type="button">Download JSON</button>
+                <button id="downloadYamlBtn" type="button">Download YAML</button>
+              </div>
+            </div>
+            <div class="band-body">
+              <div class="accounts" id="accounts"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="pane" id="pane-test">
+          <div class="band">
+            <div class="band-head">
+              <h2>Request</h2>
+              <button id="sendBtn" class="primary" type="button">Send</button>
+            </div>
+            <div class="band-body">
+              <div class="grid-3">
+                <label>Endpoint
+                  <select id="testEndpoint">
+                    <option value="/v1/chat/completions">/v1/chat/completions</option>
+                    <option value="/v1/responses">/v1/responses</option>
+                  </select>
+                </label>
+                <label>Model
+                  <input id="model" spellcheck="false" placeholder="gpt-5.5-pro">
+                  <span class="hint">Try gpt-5.5-pro for ChatGPT Pro; Extended is a thinking-time setting, not the model name.</span>
+                </label>
+                <label>Stream
+                  <select id="stream">
+                    <option value="false">false</option>
+                    <option value="true">true</option>
+                  </select>
+                </label>
+              </div>
+              <label>Message
+                <textarea id="message" spellcheck="false">ping</textarea>
+              </label>
+              <div class="result" id="result">No request yet.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="pane" id="pane-raw">
+          <div class="band">
+            <div class="band-head">
+              <h2>YAML</h2>
+              <div class="inline">
+                <button id="applyYamlBtn" class="primary" type="button">Apply YAML</button>
+                <button id="copyYamlBtn" type="button">Copy</button>
+                <button id="resetTemplateBtn" class="danger" type="button">Reset</button>
+              </div>
+            </div>
+            <div class="band-body">
+              <textarea id="yamlText" spellcheck="false"></textarea>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const els = {};
+    [
+      'modeLine', 'profileSelect', 'backendUrl', 'apiKey', 'connectBtn', 'saveProfileBtn', 'deleteProfileBtn',
+      'connState', 'poolState', 'adminState', 'sourceState', 'loadRemoteBtn', 'saveRemoteBtn', 'openFileBtn',
+      'saveFileBtn', 'fileInput', 'bind', 'port', 'logLevel', 'proxy', 'chatgptBaseUrl', 'logPath', 'logFile',
+      'authList', 'prefixList', 'addAuthBtn', 'addPrefixBtn', 'accounts', 'addAccountBtn', 'downloadJsonBtn',
+      'downloadYamlBtn', 'testEndpoint', 'model', 'stream', 'message', 'sendBtn', 'result', 'yamlText',
+      'applyYamlBtn', 'copyYamlBtn', 'resetTemplateBtn', 'toast'
+    ].forEach((id) => els[id] = document.getElementById(id));
+
+    const storageKey = 'chat2api-manager-state-v1';
+    let fileHandle = null;
+    let state = loadState();
+
+    function templateConfig() {
+      return {
+        log_level: 'debug',
+        log_path: 'logs',
+        log_file: 'app.log',
+        bind: '127.0.0.1',
+        port: '3040',
+        proxy: '',
+        chatgpt_base_url: 'https://chatgpt.com',
+        auth_tokens: [secret('sk-your-local-key')],
+        access_token_prefixes: [],
+        chatgpts: []
+      };
+    }
+
+    function emptyAccount() {
+      return {
+        index: -1,
+        email: '',
+        type: 'codex',
+        account_id: '',
+        last_refresh: '',
+        expired: '',
+        proxy: '',
+        id_token: secret(''),
+        access_token: secret(''),
+        refresh_token: secret('')
+      };
+    }
+
+    function secret(value, meta) {
+      return {
+        index: meta && Number.isInteger(meta.index) ? meta.index : -1,
+        set: Boolean((meta && meta.set) || value),
+        masked: meta && meta.masked ? meta.masked : mask(value || ''),
+        value: value || ''
+      };
+    }
+
+    function loadState() {
+      const fallback = {
+        activeProfile: 'Default',
+        profiles: {
+          Default: {
+            backendUrl: 'http://127.0.0.1:3040',
+            apiKey: '',
+            rememberKey: false
+          }
+        },
+        config: templateConfig(),
+        test: {
+          endpoint: '/v1/chat/completions',
+          model: 'gpt-5.5-pro',
+          stream: 'false',
+          message: 'ping'
+        },
+        remoteAdminAvailable: false,
+        source: 'Browser draft'
+      };
+      try {
+        const parsed = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (!parsed || !parsed.profiles || !parsed.config) return fallback;
+        parsed.config = normalizeConfig(parsed.config);
+        return parsed;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function normalizeConfig(cfg) {
+      const base = templateConfig();
+      const out = Object.assign(base, cfg || {});
+      out.port = String(out.port || '3040');
+      out.auth_tokens = normalizeSecretList(out.auth_tokens || []);
+      out.access_token_prefixes = normalizeSecretList(out.access_token_prefixes || []);
+      out.chatgpts = (out.chatgpts || []).map((account) => normalizeAccount(account));
+      return out;
+    }
+
+    function normalizeSecretList(list) {
+      return list.map((item, index) => {
+        if (typeof item === 'string') return secret(item, { index });
+        return secret(item.value || '', {
+          index: Number.isInteger(item.index) ? item.index : index,
+          set: Boolean(item.set),
+          masked: item.masked || ''
+        });
+      });
+    }
+
+    function normalizeAccount(account) {
+      const out = Object.assign(emptyAccount(), account || {});
+      out.index = Number.isInteger(account && account.index) ? account.index : -1;
+      out.id_token = normalizeSecret(account && account.id_token);
+      out.access_token = normalizeSecret(account && account.access_token);
+      out.refresh_token = normalizeSecret(account && account.refresh_token);
+      out.account_id = out.account_id || out.accountId || '';
+      out.last_refresh = out.last_refresh || out.lastRefresh || '';
+      return out;
+    }
+
+    function normalizeSecret(item) {
+      if (typeof item === 'string') return secret(item);
+      return secret(item && item.value || '', item || {});
+    }
+
+    function currentProfile() {
+      const name = state.activeProfile || 'Default';
+      if (!state.profiles[name]) state.profiles[name] = { backendUrl: 'http://127.0.0.1:3040', apiKey: '', rememberKey: false };
+      return state.profiles[name];
+    }
+
+    function renderProfiles() {
+      const names = Object.keys(state.profiles);
+      els.profileSelect.innerHTML = names.map((name) => `<option value="${escapeAttr(name)}"${name === state.activeProfile ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
+      const profile = currentProfile();
+      els.backendUrl.value = profile.backendUrl || '';
+      els.apiKey.value = profile.apiKey || '';
+    }
+
+    function renderConfig() {
+      const cfg = state.config;
+      els.bind.value = cfg.bind || '';
+      els.port.value = cfg.port || '';
+      els.logLevel.value = cfg.log_level || 'debug';
+      els.proxy.value = cfg.proxy || '';
+      els.chatgptBaseUrl.value = cfg.chatgpt_base_url || '';
+      els.logPath.value = cfg.log_path || '';
+      els.logFile.value = cfg.log_file || '';
+      renderSecretList(els.authList, cfg.auth_tokens, 'Key', 'sk-...');
+      renderSecretList(els.prefixList, cfg.access_token_prefixes, 'Prefix', 'private-prefix-');
+      renderAccounts();
+      refreshYaml();
+      els.modeLine.textContent = state.source || 'Browser draft';
+      els.sourceState.textContent = state.source || 'Browser draft';
+      els.adminState.textContent = state.remoteAdminAvailable ? 'Available' : 'Not available';
+      els.adminState.style.color = state.remoteAdminAvailable ? 'var(--ok)' : 'var(--muted)';
+      renderTest();
+    }
+
+    function renderTest() {
+      state.test = Object.assign({
+        endpoint: '/v1/chat/completions',
+        model: 'gpt-5.5-pro',
+        stream: 'false',
+        message: 'ping'
+      }, state.test || {});
+      if (state.test.model === 'extended-pro') {
+        state.test.model = 'gpt-5.5-pro';
+      }
+      els.testEndpoint.value = state.test.endpoint;
+      els.model.value = state.test.model;
+      els.stream.value = state.test.stream;
+      els.message.value = state.test.message;
+    }
+
+    function renderSecretList(root, list, label, placeholder) {
+      if (!list.length) {
+        root.innerHTML = '<div class="empty">Empty</div>';
+        return;
+      }
+      root.innerHTML = '';
+      list.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'secret-row';
+        row.innerHTML = `
+          <label>${label} ${index + 1}
+            <input type="password" autocomplete="off" spellcheck="false" placeholder="${escapeAttr(placeholder)}" value="${escapeAttr(item.value || '')}">
+            <span class="hint">${item.value ? 'new value' : item.set ? 'saved: ' + escapeHtml(item.masked || '***') : 'new entry'}</span>
+          </label>
+          <button class="small-icon danger" type="button" title="Remove">x</button>
+        `;
+        row.querySelector('input').addEventListener('input', (event) => {
+          item.value = event.target.value;
+          item.set = Boolean(item.value || item.set);
+          syncFromFields();
+        });
+        row.querySelector('button').addEventListener('click', () => {
+          list.splice(index, 1);
+          syncFromFields();
+          renderConfig();
+        });
+        root.appendChild(row);
+      });
+    }
+
+    function renderAccounts() {
+      const accounts = state.config.chatgpts;
+      if (!accounts.length) {
+        els.accounts.innerHTML = '<div class="empty">No accounts</div>';
+        return;
+      }
+      els.accounts.innerHTML = '';
+      accounts.forEach((account, index) => {
+        const title = account.email || account.account_id || `Account ${index + 1}`;
+        const tokenOk = Boolean(account.access_token.value || account.access_token.set);
+        const card = document.createElement('div');
+        card.className = 'account';
+        card.innerHTML = `
+          <div class="account-head">
+            <div class="account-title">
+              <span>${escapeHtml(title)}</span>
+              <span class="badge ${tokenOk ? '' : 'warn'}">${tokenOk ? 'token set' : 'missing token'}</span>
+            </div>
+            <select data-field="type">
+              ${option('codex', account.type)}
+              ${option('pro', account.type)}
+              ${option('plus', account.type)}
+              ${option('free', account.type)}
+              ${option('', account.type)}
+            </select>
+            <button type="button" data-action="duplicate">Duplicate</button>
+            <button type="button" class="danger" data-action="delete">Delete</button>
+          </div>
+          <div class="account-body">
+            <div class="grid-3">
+              ${textInput('Email', 'email', account.email, 'user@example.com')}
+              ${textInput('Account ID', 'account_id', account.account_id, '')}
+              ${textInput('Expired', 'expired', account.expired, '')}
+            </div>
+            <div class="grid-3">
+              ${secretInput('Access token', 'access_token', account.access_token, 'real access token')}
+              ${secretInput('Refresh token', 'refresh_token', account.refresh_token, 'optional')}
+              ${secretInput('ID token', 'id_token', account.id_token, 'optional')}
+            </div>
+            <div class="grid-2">
+              ${textInput('Proxy', 'proxy', account.proxy, 'http://127.0.0.1:7891')}
+              ${textInput('Last refresh', 'last_refresh', account.last_refresh, '')}
+            </div>
+          </div>
+        `;
+        card.querySelectorAll('input[data-field], select[data-field]').forEach((input) => {
+          input.addEventListener('input', () => updateAccountField(account, input));
+          input.addEventListener('change', () => updateAccountField(account, input));
+        });
+        card.querySelector('[data-action="delete"]').addEventListener('click', () => {
+          accounts.splice(index, 1);
+          syncFromFields();
+          renderConfig();
+        });
+        card.querySelector('[data-action="duplicate"]').addEventListener('click', () => {
+          const copy = JSON.parse(JSON.stringify(account));
+          copy.index = -1;
+          accounts.splice(index + 1, 0, copy);
+          syncFromFields();
+          renderConfig();
+        });
+        els.accounts.appendChild(card);
+      });
+    }
+
+    function textInput(label, field, value, placeholder) {
+      return `<label>${label}<input data-field="${field}" value="${escapeAttr(value || '')}" spellcheck="false" placeholder="${escapeAttr(placeholder || '')}"></label>`;
+    }
+
+    function secretInput(label, field, item, placeholder) {
+      const hint = item.value ? 'new value' : item.set ? 'saved: ' + escapeHtml(item.masked || '***') : 'not set';
+      return `<label>${label}<input data-field="${field}" type="password" autocomplete="off" spellcheck="false" value="${escapeAttr(item.value || '')}" placeholder="${escapeAttr(placeholder || '')}"><span class="hint">${hint}</span></label>`;
+    }
+
+    function option(value, selected) {
+      const label = value || 'custom';
+      return `<option value="${escapeAttr(value)}"${value === selected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+    }
+
+    function updateAccountField(account, input) {
+      const field = input.dataset.field;
+      if (account[field] && typeof account[field] === 'object') {
+        account[field].value = input.value;
+        account[field].set = Boolean(input.value || account[field].set);
+      } else {
+        account[field] = input.value;
+      }
+      syncFromFields();
+    }
+
+    function syncFromFields() {
+      const cfg = state.config;
+      cfg.bind = els.bind.value.trim();
+      cfg.port = els.port.value.trim();
+      cfg.log_level = els.logLevel.value.trim();
+      cfg.proxy = els.proxy.value.trim();
+      cfg.chatgpt_base_url = els.chatgptBaseUrl.value.trim();
+      cfg.log_path = els.logPath.value.trim();
+      cfg.log_file = els.logFile.value.trim();
+      saveState();
+      refreshYaml();
+    }
+
+    function refreshYaml() {
+      els.yamlText.value = configToYaml(state.config);
+    }
+
+    function apiBase() {
+      return normalizeUrl(els.backendUrl.value || currentProfile().backendUrl || '');
+    }
+
+    function authHeaders(extra) {
+      const headers = Object.assign({}, extra || {});
+      const key = els.apiKey.value.trim();
+      if (key) headers.Authorization = 'Bearer ' + key;
+      return headers;
+    }
+
+    async function connect() {
+      const base = apiBase();
+      if (!base) return toast('Backend URL is required', 'err');
+      els.connState.textContent = 'Checking...';
+      els.poolState.textContent = '-';
+      try {
+        const stats = await fetchJson(base + '/v1/accTokens', { headers: authHeaders() });
+        els.connState.textContent = 'Connected';
+        els.connState.style.color = 'var(--ok)';
+        els.poolState.textContent = `${stats.count ?? '-'} total / ${stats.can_use_count ?? '-'} usable`;
+        await checkAdminApi(false);
+        saveCurrentProfile(false);
+      } catch (err) {
+        els.connState.textContent = err.message;
+        els.connState.style.color = 'var(--danger)';
+        toast(err.message, 'err');
+      }
+    }
+
+    async function checkAdminApi(showToast) {
+      try {
+        await fetchJson(apiBase() + '/admin/api/config', { headers: authHeaders() });
+        state.remoteAdminAvailable = true;
+        els.adminState.textContent = 'Available';
+        els.adminState.style.color = 'var(--ok)';
+        if (showToast) toast('Remote admin API is available');
+      } catch (err) {
+        state.remoteAdminAvailable = false;
+        els.adminState.textContent = err.status === 404 ? 'Not installed' : 'Not available';
+        els.adminState.style.color = 'var(--muted)';
+        if (showToast) toast('Remote admin API not available');
+      }
+      saveState();
+    }
+
+    async function loadRemoteConfig() {
+      try {
+        const data = await fetchJson(apiBase() + '/admin/api/config', { headers: authHeaders() });
+        state.config = normalizeRemoteConfig(data);
+        state.remoteAdminAvailable = true;
+        state.source = 'Remote admin API';
+        saveState();
+        renderConfig();
+        toast('Remote config loaded');
+      } catch (err) {
+        state.remoteAdminAvailable = false;
+        saveState();
+        renderConfig();
+        toast(err.message, 'err');
+      }
+    }
+
+    async function saveRemoteConfig() {
+      syncFromFields();
+      try {
+        const data = await fetchJson(apiBase() + '/admin/api/config', {
+          method: 'PUT',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(remotePayload(state.config))
+        });
+        state.config = normalizeRemoteConfig(data);
+        state.remoteAdminAvailable = true;
+        state.source = 'Remote admin API';
+        saveState();
+        renderConfig();
+        toast('Remote config saved');
+      } catch (err) {
+        toast(err.message, 'err');
+      }
+    }
+
+    function normalizeRemoteConfig(data) {
+      const cfg = templateConfig();
+      cfg.proxy = data.proxy || '';
+      cfg.chatgpt_base_url = data.chatgpt_base_url || '';
+      cfg.auth_tokens = normalizeSecretList(data.auth_tokens || []);
+      cfg.access_token_prefixes = normalizeSecretList(data.access_token_prefixes || []);
+      cfg.chatgpts = (data.chatgpts || []).map(normalizeAccount);
+      return cfg;
+    }
+
+    function remotePayload(cfg) {
+      return {
+        proxy: cfg.proxy,
+        chatgpt_base_url: cfg.chatgpt_base_url,
+        auth_tokens: cfg.auth_tokens,
+        access_token_prefixes: cfg.access_token_prefixes,
+        chatgpts: cfg.chatgpts
+      };
+    }
+
+    async function fetchJson(url, options) {
+      let res;
+      try {
+        res = await fetch(url, options || {});
+      } catch (err) {
+        throw new Error('Network/CORS: ' + err.message);
+      }
+      const text = await res.text();
+      const data = text ? safeJson(text) : {};
+      if (!res.ok) {
+        const message = data.error || (data.detail && data.detail.msg) || data.message || text || `${res.status} ${res.statusText}`;
+        const err = new Error(message);
+        err.status = res.status;
+        throw err;
+      }
+      return data;
+    }
+
+    function safeJson(text) {
+      try { return JSON.parse(text); } catch { return { raw: text }; }
+    }
+
+    async function sendTest() {
+      syncTestFields();
+      const base = apiBase();
+      const endpoint = els.testEndpoint.value;
+      const stream = els.stream.value === 'true';
+      const model = els.model.value.trim() || 'auto';
+      const input = els.message.value;
+      const body = endpoint.includes('/responses')
+        ? { model, stream, input }
+        : { model, stream, messages: [{ role: 'user', content: input }] };
+      els.result.textContent = 'Sending...';
+      try {
+        const res = await fetch(base + endpoint, {
+          method: 'POST',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(body)
+        });
+        const text = await res.text();
+        els.result.textContent = text || `${res.status} ${res.statusText}`;
+      } catch (err) {
+        els.result.textContent = 'Network/CORS: ' + err.message;
+      }
+    }
+
+    function syncTestFields() {
+      state.test = {
+        endpoint: els.testEndpoint.value,
+        model: els.model.value.trim(),
+        stream: els.stream.value,
+        message: els.message.value
+      };
+      saveState();
+    }
+
+    function saveCurrentProfile(show) {
+      const name = state.activeProfile || 'Default';
+      state.profiles[name] = {
+        backendUrl: normalizeUrl(els.backendUrl.value.trim()),
+        apiKey: els.apiKey.value.trim()
+      };
+      saveState();
+      renderProfiles();
+      if (show) toast('Profile saved');
+    }
+
+    function deleteProfile() {
+      const name = state.activeProfile || 'Default';
+      if (Object.keys(state.profiles).length <= 1) return toast('Keep at least one profile', 'err');
+      delete state.profiles[name];
+      state.activeProfile = Object.keys(state.profiles)[0];
+      saveState();
+      renderProfiles();
+      toast('Profile deleted');
+    }
+
+    async function openYaml() {
+      if (window.showOpenFilePicker) {
+        try {
+          const handles = await window.showOpenFilePicker({
+            multiple: false,
+            types: [{ description: 'YAML or JSON', accept: { 'text/plain': ['.yaml', '.yml', '.json'] } }]
+          });
+          fileHandle = handles[0];
+          const file = await fileHandle.getFile();
+          await loadText(file.name, await file.text());
+          return;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+        }
+      }
+      els.fileInput.click();
+    }
+
+    async function saveYaml() {
+      syncFromFields();
+      const text = configToYaml(state.config);
+      if (fileHandle && fileHandle.createWritable) {
+        try {
+          const writable = await fileHandle.createWritable();
+          await writable.write(text);
+          await writable.close();
+          state.source = 'Saved YAML file';
+          saveState();
+          renderConfig();
+          toast('YAML file saved');
+          return;
+        } catch (err) {
+          toast(err.message, 'err');
+        }
+      }
+      download('app.dev.yaml', text, 'text/yaml');
+    }
+
+    async function loadText(name, text) {
+      if (name.toLowerCase().endsWith('.json')) {
+        state.config = normalizeConfig(JSON.parse(text));
+      } else {
+        state.config = normalizeConfig(parseYaml(text));
+      }
+      state.source = name;
+      saveState();
+      renderConfig();
+      toast('Config loaded');
+    }
+
+    function applyYaml() {
+      try {
+        state.config = normalizeConfig(parseYaml(els.yamlText.value));
+        state.source = 'Edited YAML';
+        saveState();
+        renderConfig();
+        toast('YAML applied');
+      } catch (err) {
+        toast(err.message, 'err');
+      }
+    }
+
+    function configToYaml(cfg) {
+      const lines = [];
+      lines.push('log_level: ' + y(cfg.log_level || 'debug'));
+      lines.push('log_path: ' + y(cfg.log_path || 'logs'));
+      lines.push('log_file: ' + y(cfg.log_file || 'app.log'));
+      lines.push('bind: ' + y(cfg.bind || '127.0.0.1'));
+      lines.push('port: ' + (cfg.port || '3040'));
+      lines.push('');
+      lines.push('auth:');
+      const authTokens = valueList(cfg.auth_tokens);
+      if (authTokens.length === 0) {
+        lines.push('  access_tokens: []');
+      } else {
+        lines.push('  access_tokens:');
+        authTokens.forEach((value) => lines.push('    - ' + y(value)));
+      }
+      const prefixes = valueList(cfg.access_token_prefixes);
+      if (prefixes.length === 0) {
+        lines.push('  access_token_prefix: []');
+      } else {
+        lines.push('  access_token_prefix:');
+        prefixes.forEach((value) => lines.push('    - ' + y(value)));
+      }
+      lines.push('');
+      lines.push('proxy: ' + y(cfg.proxy || ''));
+      lines.push('chatgpt_base_url: ' + y(cfg.chatgpt_base_url || 'https://chatgpt.com'));
+      lines.push('');
+      if (!cfg.chatgpts.length) {
+        lines.push('chatgpts: []');
+      } else {
+        lines.push('chatgpts:');
+        cfg.chatgpts.forEach((account) => {
+          lines.push('  - id_token: ' + y(secretValue(account.id_token)));
+          lines.push('    access_token: ' + y(secretValue(account.access_token)));
+          lines.push('    refresh_token: ' + y(secretValue(account.refresh_token)));
+          lines.push('    account_id: ' + y(account.account_id || ''));
+          lines.push('    last_refresh: ' + y(account.last_refresh || ''));
+          lines.push('    email: ' + y(account.email || ''));
+          lines.push('    type: ' + y(account.type || 'codex'));
+          lines.push('    expired: ' + y(account.expired || ''));
+          lines.push('    proxy: ' + y(account.proxy || ''));
+          lines.push('');
+        });
+      }
+      return lines.join('\n').trimEnd() + '\n';
+    }
+
+    function valueList(list) {
+      return (list || []).map(secretValue).filter(Boolean);
+    }
+
+    function secretValue(item) {
+      if (!item) return '';
+      return (item.value || '').trim();
+    }
+
+    function parseYaml(text) {
+      const cfg = templateConfig();
+      cfg.auth_tokens = [];
+      cfg.access_token_prefixes = [];
+      cfg.chatgpts = [];
+      const lines = text.replace(/\r/g, '').split('\n');
+      let section = '';
+      let sub = '';
+      let account = null;
+      for (const raw of lines) {
+        const withoutComment = raw.replace(/\s+#.*$/, '');
+        const trimmed = withoutComment.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const indent = raw.match(/^\s*/)[0].length;
+        if (indent === 0) {
+          account = null;
+          sub = '';
+          const scalar = trimmed.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
+          if (!scalar) continue;
+          const key = scalar[1];
+          const value = scalar[2];
+          section = value === '' ? key : '';
+          if (value !== '') setRoot(cfg, key, cleanYamlValue(value));
+          if (value === '[]' && key === 'chatgpts') cfg.chatgpts = [];
+          continue;
+        }
+        if (section === 'auth') {
+          const m = trimmed.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
+          if (m && !trimmed.startsWith('- ')) {
+            sub = m[1];
+            if (m[2] && m[2] !== '[]') pushAuth(cfg, sub, cleanYamlValue(m[2]));
+            continue;
+          }
+          if (trimmed.startsWith('- ')) pushAuth(cfg, sub, cleanYamlValue(trimmed.slice(2)));
+          continue;
+        }
+        if (section === 'chatgpts') {
+          if (trimmed === '[]') continue;
+          if (trimmed.startsWith('- ')) {
+            account = emptyAccount();
+            cfg.chatgpts.push(account);
+            const rest = trimmed.slice(2).trim();
+            if (rest) setAccount(account, rest);
+            continue;
+          }
+          if (account) setAccount(account, trimmed);
+        }
+      }
+      return cfg;
+    }
+
+    function setRoot(cfg, key, value) {
+      if (key === 'chatgpt_base_url') cfg.chatgpt_base_url = value;
+      else if (key in cfg) cfg[key] = value;
+    }
+
+    function pushAuth(cfg, sub, value) {
+      if (!value || value === '[]') return;
+      if (sub === 'access_tokens') cfg.auth_tokens.push(secret(value));
+      if (sub === 'access_token_prefix') cfg.access_token_prefixes.push(secret(value));
+    }
+
+    function setAccount(account, line) {
+      const m = line.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
+      if (!m) return;
+      const key = m[1];
+      const value = cleanYamlValue(m[2]);
+      if (key === 'id_token' || key === 'access_token' || key === 'refresh_token') account[key] = secret(value);
+      else if (key === 'account_id') account.account_id = value;
+      else if (key === 'last_refresh') account.last_refresh = value;
+      else if (key in account) account[key] = value;
+    }
+
+    function cleanYamlValue(value) {
+      value = String(value || '').trim();
+      if (value === '[]') return '';
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        try { return JSON.parse(value); } catch { return value.slice(1, -1); }
+      }
+      return value;
+    }
+
+    function y(value) {
+      return JSON.stringify(String(value == null ? '' : value));
+    }
+
+    function download(name, text, type) {
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function normalizeUrl(url) {
+      return String(url || '').trim().replace(/\/+$/, '');
+    }
+
+    function mask(value) {
+      value = String(value || '');
+      if (!value) return '';
+      if (value.length <= 10) return '***';
+      return value.slice(0, 6) + '...' + value.slice(-4);
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/"/g, '&quot;');
+    }
+
+    function toast(text, kind) {
+      els.toast.textContent = text;
+      els.toast.style.background = kind === 'err' ? '#7a271a' : '#101828';
+      els.toast.classList.add('show');
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => els.toast.classList.remove('show'), 2400);
+    }
+
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach((item) => item.classList.remove('active'));
+        document.querySelectorAll('.pane').forEach((item) => item.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('pane-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    els.profileSelect.addEventListener('change', () => {
+      state.activeProfile = els.profileSelect.value;
+      saveState();
+      renderProfiles();
+    });
+    els.connectBtn.addEventListener('click', connect);
+    els.saveProfileBtn.addEventListener('click', () => saveCurrentProfile(true));
+    els.deleteProfileBtn.addEventListener('click', deleteProfile);
+    els.loadRemoteBtn.addEventListener('click', loadRemoteConfig);
+    els.saveRemoteBtn.addEventListener('click', saveRemoteConfig);
+    els.openFileBtn.addEventListener('click', openYaml);
+    els.saveFileBtn.addEventListener('click', saveYaml);
+    els.fileInput.addEventListener('change', async () => {
+      const file = els.fileInput.files && els.fileInput.files[0];
+      if (file) await loadText(file.name, await file.text());
+      els.fileInput.value = '';
+    });
+    els.addAuthBtn.addEventListener('click', () => {
+      state.config.auth_tokens.push(secret(''));
+      renderConfig();
+    });
+    els.addPrefixBtn.addEventListener('click', () => {
+      state.config.access_token_prefixes.push(secret(''));
+      renderConfig();
+    });
+    els.addAccountBtn.addEventListener('click', () => {
+      state.config.chatgpts.push(emptyAccount());
+      renderConfig();
+    });
+    els.downloadJsonBtn.addEventListener('click', () => {
+      syncFromFields();
+      download('chat2api-config.json', JSON.stringify(state.config, null, 2), 'application/json');
+    });
+    els.downloadYamlBtn.addEventListener('click', () => {
+      syncFromFields();
+      download('app.dev.yaml', configToYaml(state.config), 'text/yaml');
+    });
+    els.sendBtn.addEventListener('click', sendTest);
+    els.applyYamlBtn.addEventListener('click', applyYaml);
+    els.copyYamlBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(els.yamlText.value);
+      toast('Copied');
+    });
+    els.resetTemplateBtn.addEventListener('click', () => {
+      state.config = templateConfig();
+      state.source = 'Browser draft';
+      saveState();
+      renderConfig();
+    });
+    [els.bind, els.port, els.logLevel, els.proxy, els.chatgptBaseUrl, els.logPath, els.logFile].forEach((input) => {
+      input.addEventListener('input', syncFromFields);
+      input.addEventListener('change', syncFromFields);
+    });
+    [els.testEndpoint, els.model, els.stream, els.message].forEach((input) => {
+      input.addEventListener('input', syncTestFields);
+      input.addEventListener('change', syncTestFields);
+    });
+
+    renderProfiles();
+    renderConfig();
+  </script>
+</body>
+</html>
