@@ -26,6 +26,10 @@ proxy: http://127.0.0.1:7890
 # Upstream ChatGPT base URL. Empty value defaults to https://chatgpt.com.
 chatgpt_base_url: https://chatgpt.com
 
+# Optional: enable direct OpenAI Responses / deep research passthrough.
+openai_base_url: https://api.openai.com/v1
+openai_api_key: ""
+
 # Account pool used by local sk-* auth keys.
 # Required field per account: access_token.
 # Other fields are optional metadata or auxiliary settings.

@@ -153,6 +153,7 @@ func defaultGeneratedApp(curr env.Env) app {
 		Auth:           auth{AccessTokens: []string{}, AccessTokenPrefix: []string{}},
 		Proxy:          "",
 		ChatGPTBaseUrl: "https://chatgpt.com",
+		OpenAIBaseUrl:  "https://api.openai.com/v1",
 		ChatGPTs:       []chatgpt{},
 	}
 }
@@ -463,6 +464,12 @@ func applyEnvOverrides(cfg *app) {
 	}
 	if value := strings.TrimSpace(os.Getenv("CHATGPT_BASE_URL")); value != "" {
 		cfg.ChatGPTBaseUrl = value
+	}
+	if value := strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")); value != "" {
+		cfg.OpenAIBaseUrl = value
+	}
+	if value := strings.TrimSpace(os.Getenv("OPENAI_API_KEY")); value != "" {
+		cfg.OpenAIApiKey = value
 	}
 	if value := strings.TrimSpace(os.Getenv("LOG_LEVEL")); value != "" {
 		cfg.LogLevel = value

@@ -16,6 +16,10 @@ proxy: ""
 
 chatgpt_base_url: https://chatgpt.com
 
+# Optional: enable direct OpenAI Responses / deep research passthrough.
+openai_base_url: https://api.openai.com/v1
+openai_api_key: ""
+
 # ChatGPT Web account pool. Replace access_token with real ChatGPT Web access tokens.
 chatgpts:
   - id_token: ""

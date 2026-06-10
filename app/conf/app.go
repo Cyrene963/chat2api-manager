@@ -11,6 +11,8 @@ type app struct {
 	Auth           auth      `yaml:"auth"`
 	Proxy          string    `yaml:"proxy"`
 	ChatGPTBaseUrl string    `yaml:"chatgpt_base_url"`
+	OpenAIBaseUrl  string    `yaml:"openai_base_url"`
+	OpenAIApiKey   string    `yaml:"openai_api_key"`
 	ChatGPTs       []chatgpt `yaml:"chatgpts"`
 }
 

@@ -23,6 +23,7 @@ NewAPI / sub2api / OpenAI-compatible client
 - Manage `auth.access_tokens` for NewAPI/sub2api.
 - Manage `chatgpts` account-pool entries with real ChatGPT Web `access_token` values.
 - Test `/v1/chat/completions` and `/v1/responses`.
+- Optionally proxy OpenAI Responses / deep research when `OPENAI_API_KEY` is set.
 - Import and export `app.dev.yaml`.
 
 ## Quick Start
@@ -229,6 +230,30 @@ On Linux Docker, `host.docker.internal` may not be enabled by default. The host 
 `Extended` is not a model name. It is a ChatGPT thinking-time / effort option. This code does not currently expose a separate thinking-time parameter. If ChatGPT Web requires an extra request field for Extended or Heavy thinking, the next step is to capture the real ChatGPT Web request and add that field to `chat2api`.
 
 The account token must already have the required Pro entitlement.
+
+## OpenAI Deep Research
+
+If you set `OPENAI_API_KEY` or `openai_api_key`, `/v1/responses` can proxy directly to the OpenAI Responses API.
+
+Use the official deep research models:
+
+```text
+o3-deep-research
+o4-mini-deep-research
+```
+
+Typical request shape:
+
+```json
+{
+  "model": "o3-deep-research",
+  "background": true,
+  "reasoning": { "summary": "auto" },
+  "tools": [{ "type": "web_search_preview" }]
+}
+```
+
+The backend also exposes `GET /v1/responses/{id}` so you can poll background jobs.
 
 ## Security
 
