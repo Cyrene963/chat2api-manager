@@ -2,11 +2,12 @@ package service
 
 import (
 	"chat2api/app/types/completions"
+	"chat2api/app/types/responses"
 
 	"github.com/gin-gonic/gin"
 )
 
-func runResponsesTextChat(c *gin.Context, apiReq *completions.ApiReq, streamResponses bool) (*chatResult, error) {
+func runResponsesTextChat(c *gin.Context, apiReq *completions.ApiReq, streamResponses bool, responseOptions responses.ResponseOptions) (*chatResult, error) {
 	chatReq := completions.BuildChatRequest(apiReq)
 	resp, accessToken, err := sendChatRequest(c, chatReq)
 	if err != nil {
@@ -18,9 +19,9 @@ func runResponsesTextChat(c *gin.Context, apiReq *completions.ApiReq, streamResp
 	}
 	if streamResponses {
 		if completions.HasTools(apiReq) {
-			return streamResponsesFunctionCallingEvents(c, apiReq, resp)
+			return streamResponsesFunctionCallingEvents(c, apiReq, resp, responseOptions)
 		}
-		_, err := streamResponsesTextEvents(c, apiReq.Model, resp)
+		_, err := streamResponsesTextEvents(c, apiReq.Model, resp, responseOptions)
 		return nil, err
 	}
 	return handlerResponse(c, apiReq, resp)

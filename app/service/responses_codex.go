@@ -86,29 +86,33 @@ func runConversationImageResponses(c *gin.Context, apiReq *responses.ApiReq, pro
 	responseID := responses.ResponseID()
 	created := time.Now().Unix()
 	model := responses.NormalizeModel(apiReq.Model)
+	responseOptions := responses.OptionsFromRequest(apiReq)
 	if apiReq.Stream {
 		c.Header("Content-Type", "text/event-stream")
-		createdEvent := responses.CreatedEvent(responseID, model, created)
-		if _, err := c.Writer.WriteString(responses.SSE(createdEvent)); err != nil {
+		stream := responses.NewEventStream()
+		if _, err := c.Writer.WriteString(stream.SSE(responses.CreatedEvent(responseID, model, created, responseOptions))); err != nil {
+			return err
+		}
+		if _, err := c.Writer.WriteString(stream.SSE(responses.InProgressEvent(responseID, model, created, responseOptions))); err != nil {
 			return err
 		}
 		for index, item := range output {
 			addedItem := item
-			if _, err := c.Writer.WriteString(responses.SSE(responses.Event{Type: "response.output_item.added", OutputIndex: index, Item: &addedItem})); err != nil {
+			if _, err := c.Writer.WriteString(stream.SSE(responses.Event{Type: "response.output_item.added", OutputIndex: responses.Int(index), Item: &addedItem})); err != nil {
 				return err
 			}
-			if _, err := c.Writer.WriteString(responses.SSE(responses.Event{Type: "response.output_item.done", OutputIndex: index, Item: &addedItem})); err != nil {
+			if _, err := c.Writer.WriteString(stream.SSE(responses.Event{Type: "response.output_item.done", OutputIndex: responses.Int(index), Item: &addedItem})); err != nil {
 				return err
 			}
 		}
-		if _, err := c.Writer.WriteString(responses.SSE(responses.CompletedEvent(responseID, model, created, output))); err != nil {
+		if _, err := c.Writer.WriteString(stream.SSE(responses.CompletedEvent(responseID, model, created, output, responseOptions))); err != nil {
 			return err
 		}
 		_, _ = c.Writer.WriteString("data: [DONE]\n\n")
 		c.Writer.Flush()
 		return nil
 	}
-	c.JSON(http.StatusOK, responses.CompletedEvent(responseID, model, created, output).Response)
+	c.JSON(http.StatusOK, responses.CompletedEvent(responseID, model, created, output, responseOptions).Response)
 	return nil
 }
 
@@ -160,58 +164,71 @@ func sendCodexResponsesRequest(c *gin.Context, payload codexResponsesPayload) (*
 func streamCodexResponses(c *gin.Context, resp *http.Response) error {
 	c.Header("Content-Type", "text/event-stream")
 	reader := bufio.NewReader(resp.Body)
+	eventType := ""
+	dataLines := make([]string, 0, 1)
+	flush := func() error {
+		if len(dataLines) == 0 {
+			eventType = ""
+			return nil
+		}
+		payload := strings.TrimSpace(strings.Join(dataLines, "\n"))
+		dataLines = dataLines[:0]
+		currentEventType := eventType
+		eventType = ""
+		if payload == "" {
+			return nil
+		}
+		if payload == "[DONE]" {
+			_, err := c.Writer.WriteString("data: [DONE]\n\n")
+			return err
+		}
+		if currentEventType == "" {
+			var event map[string]interface{}
+			if err := json.Unmarshal([]byte(payload), &event); err != nil {
+				return nil
+			}
+			currentEventType = responseStringValue(event["type"], "")
+		}
+		if !isPublicCodexResponseEvent(currentEventType) {
+			return nil
+		}
+		if _, err := c.Writer.WriteString(responses.RawSSE(currentEventType, payload)); err != nil {
+			return err
+		}
+		c.Writer.Flush()
+		return nil
+	}
 	for {
 		line, err := reader.ReadString('\n')
+		if len(line) > 0 {
+			trimmed := strings.TrimRight(line, "\r\n")
+			switch {
+			case trimmed == "":
+				if err := flush(); err != nil {
+					return err
+				}
+			case strings.HasPrefix(trimmed, "event:"):
+				eventType = strings.TrimSpace(strings.TrimPrefix(trimmed, "event:"))
+			case strings.HasPrefix(trimmed, "data:"):
+				dataLines = append(dataLines, strings.TrimSpace(strings.TrimPrefix(trimmed, "data:")))
+			}
+		}
 		if err != nil {
 			if err == io.EOF {
+				if err := flush(); err != nil {
+					return err
+				}
 				break
 			}
 			return err
 		}
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "data: [DONE]" {
-			if _, err := c.Writer.WriteString("data: [DONE]\n\n"); err != nil {
-				return err
-			}
-			break
-		}
-		if !strings.HasPrefix(trimmed, "data:") {
-			continue
-		}
-		payload := strings.TrimSpace(strings.TrimPrefix(trimmed, "data:"))
-		if payload == "" || payload == "[DONE]" {
-			continue
-		}
-		if !isPublicCodexResponseEvent(payload) {
-			continue
-		}
-		if _, err := c.Writer.WriteString("data: " + payload + "\n\n"); err != nil {
-			return err
-		}
-		c.Writer.Flush()
 	}
 	c.Writer.Flush()
 	return nil
 }
 
-func isPublicCodexResponseEvent(payload string) bool {
-	var event map[string]interface{}
-	if err := json.Unmarshal([]byte(payload), &event); err != nil {
-		return false
-	}
-	switch responseStringValue(event["type"], "") {
-	case "response.created",
-		"response.output_item.added",
-		"response.output_text.delta",
-		"response.output_text.done",
-		"response.output_item.done",
-		"response.completed",
-		"response.failed",
-		"response.incomplete":
-		return true
-	default:
-		return false
-	}
+func isPublicCodexResponseEvent(eventType string) bool {
+	return eventType == "keepalive" || strings.HasPrefix(eventType, "response.")
 }
 
 func collectCodexResponse(body io.Reader) (map[string]interface{}, error) {

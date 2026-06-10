@@ -31,6 +31,7 @@ func Responses(c *gin.Context) {
 		Tools:      completionToolsFromResponses(apiReq.Tools),
 		ToolChoice: completionToolChoiceFromResponses(apiReq.ToolChoice),
 	}
+	responseOptions := responses.OptionsFromRequest(apiReq)
 	if len(compReq.Messages) == 0 {
 		common.ErrorResponse(c, http.StatusBadRequest, "input text is required", nil)
 		return
@@ -39,7 +40,7 @@ func Responses(c *gin.Context) {
 		common.ErrorResponse(c, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
-	result, err := runResponsesTextChat(c, compReq, apiReq.Stream)
+	result, err := runResponsesTextChat(c, compReq, apiReq.Stream, responseOptions)
 	if err != nil {
 		logx.WithContext(c.Request.Context()).Error(err.Error())
 		common.ErrorResponse(c, http.StatusBadGateway, "", err.Error())
@@ -62,9 +63,9 @@ func Responses(c *gin.Context) {
 				"completed",
 			))
 		}
-		c.JSON(http.StatusOK, responses.CompletedEvent(responses.ResponseID(), compReq.Model, time.Now().Unix(), items).Response)
+		c.JSON(http.StatusOK, responses.CompletedEvent(responses.ResponseID(), compReq.Model, time.Now().Unix(), items, responseOptions).Response)
 		return
 	}
 	item := responses.TextOutputItem(responses.MessageID(), result.Content, "completed")
-	c.JSON(http.StatusOK, responses.CompletedEvent(responses.ResponseID(), compReq.Model, time.Now().Unix(), []responses.OutputItem{item}).Response)
+	c.JSON(http.StatusOK, responses.CompletedEvent(responses.ResponseID(), compReq.Model, time.Now().Unix(), []responses.OutputItem{item}, responseOptions).Response)
 }
