@@ -69,6 +69,25 @@ Restart after editing:
 docker compose restart
 ```
 
+### Linux Upgrade
+
+If you already installed an older version from a source checkout, the most common update flow is:
+
+```bash
+git pull --ff-only
+go build -o chat2api ./cmd
+# then restart your systemd service or manual process
+```
+
+If you deployed with Docker Compose:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Keep `.chat2api/conf` and `.chat2api/logs` in place. Config and logs live in the mounted volume.
+
 Default port:
 
 ```text

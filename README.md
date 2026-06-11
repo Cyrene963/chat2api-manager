@@ -69,6 +69,25 @@ chatgpts:
 docker compose restart
 ```
 
+### Linux 升级
+
+如果你已经在源码目录里装过旧版本，更新时最常见的是：
+
+```bash
+git pull --ff-only
+go build -o chat2api ./cmd
+# 然后重启你的 systemd 服务或手动进程
+```
+
+如果你是用 Docker Compose 部署的：
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+升级时保留 `.chat2api/conf` 和 `.chat2api/logs` 即可，配置和日志都在挂载卷里。
+
 默认端口：
 
 ```text
