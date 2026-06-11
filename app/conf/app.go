@@ -3,15 +3,19 @@ package conf
 import "strings"
 
 type app struct {
-	LogLevel       string    `yaml:"log_level"`
-	LogPath        string    `yaml:"log_path"`
-	LogFile        string    `yaml:"log_file"`
-	Bind           string    `yaml:"bind"`
-	Port           uint16    `yaml:"port"`
-	Auth           auth      `yaml:"auth"`
-	Proxy          string    `yaml:"proxy"`
-	ChatGPTBaseUrl string    `yaml:"chatgpt_base_url"`
-	ChatGPTs       []chatgpt `yaml:"chatgpts"`
+	LogLevel                     string    `yaml:"log_level"`
+	LogPath                      string    `yaml:"log_path"`
+	LogFile                      string    `yaml:"log_file"`
+	Bind                         string    `yaml:"bind"`
+	Port                         uint16    `yaml:"port"`
+	Auth                         auth      `yaml:"auth"`
+	Proxy                        string    `yaml:"proxy"`
+	ChatGPTBaseUrl               string    `yaml:"chatgpt_base_url"`
+	AccountRotationEnabled       bool      `yaml:"account_rotation_enabled"`
+	AccountRotationWindowMinutes int       `yaml:"account_rotation_window_minutes"`
+	AccountRotationMaxUses       int       `yaml:"account_rotation_max_uses"`
+	AccountBadThreshold          int       `yaml:"account_bad_threshold"`
+	ChatGPTs                     []chatgpt `yaml:"chatgpts"`
 }
 
 func (a app) TextAccessTokens() []string {

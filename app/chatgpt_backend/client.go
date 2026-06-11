@@ -55,16 +55,17 @@ func New(token string, retry int) (*Client, error) {
 	if strings.HasPrefix(token, "Bearer eyJhbGciOiJSUzI1NiI") {
 		return newClient(token, "")
 	}
-	if !token_pool.GetAccessTokenPool().IsEmpty() {
-		accessToken := token_pool.GetAccessTokenPool().GetAccessToken()
-		if accessToken == nil || accessToken.Token == "" {
-			return nil, fmt.Errorf("access token pool is empty")
-		}
+	pool := token_pool.GetAccessTokenPool()
+	if accessToken := pool.GetAccessToken(); accessToken != nil && accessToken.Token != "" {
 		client, err := newClient(accessToken.Token, accessToken.Proxy)
-		if client == nil && retry > 0 {
-			return New(token, retry-1)
+		if err != nil {
+			pool.RecordFailure(accessToken.Token, err.Error())
+			if retry > 0 {
+				return New(token, retry-1)
+			}
+			return nil, err
 		}
-		return client, err
+		return client, nil
 	}
 	if strings.HasPrefix(localToken, "sk-") {
 		return nil, fmt.Errorf("access token pool is empty")

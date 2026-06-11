@@ -56,6 +56,7 @@ func Completions(c *gin.Context) {
 		common.ErrorResponse(c, http.StatusBadGateway, "", err.Error())
 		return
 	}
+	recordAccessTokenOutcome(accessToken, result)
 	if !apiReq.Stream {
 		id := completions.GenerateCompletionID(29)
 		resp := completions.NewApiRespJson(id, apiReq.Model, result.Content)
@@ -98,6 +99,8 @@ func handleResponseError(c *gin.Context, response *http.Response, accessToken st
 	if response.StatusCode == http.StatusTooManyRequests {
 		canUseAt := rateLimitCanUseAt(response, body)
 		token_pool.GetAccessTokenPool().SetCanUseAt(accessToken, canUseAt)
+	} else if shouldMarkAccessTokenFailure(response.StatusCode) {
+		recordAccessTokenFailure(accessToken, responseFailureReason(response, body))
 	}
 	var errorResponse map[string]interface{}
 	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&errorResponse); err != nil {
@@ -106,6 +109,30 @@ func handleResponseError(c *gin.Context, response *http.Response, accessToken st
 	}
 	common.ErrorResponse(c, response.StatusCode, errorResponse["detail"], nil)
 	return true
+}
+
+func shouldMarkAccessTokenFailure(statusCode int) bool {
+	switch statusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return true
+	default:
+		return statusCode >= http.StatusInternalServerError
+	}
+}
+
+func responseFailureReason(response *http.Response, body []byte) string {
+	if len(body) == 0 {
+		return response.Status
+	}
+	var errorResponse map[string]interface{}
+	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&errorResponse); err == nil {
+		if detail, ok := errorResponse["detail"]; ok {
+			if text := strings.TrimSpace(fmt.Sprint(detail)); text != "" {
+				return text
+			}
+		}
+	}
+	return strings.TrimSpace(string(body))
 }
 
 func rateLimitCanUseAt(response *http.Response, body []byte) int64 {

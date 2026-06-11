@@ -11,12 +11,14 @@ import (
 type AccessTokensResp struct {
 	Count       int `json:"count"`
 	CanUseCount int `json:"can_use_count"`
+	MarkedCount int `json:"marked_count"`
 }
 
 func AccTokens(c *gin.Context) {
 	resp := &AccessTokensResp{
 		Count:       token_pool.GetAccessTokenPool().Size(),
 		CanUseCount: token_pool.GetAccessTokenPool().CanUseSize(),
+		MarkedCount: token_pool.GetAccessTokenPool().MarkedSize(),
 	}
 	logx.WithContext(c.Request.Context()).Info(fmt.Sprint("AccessTokenPool Tokens: ", resp.Count))
 	c.JSON(200, resp)

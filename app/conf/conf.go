@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -145,15 +146,19 @@ func defaultGeneratedApp(curr env.Env) app {
 		logLevel = "info"
 	}
 	return app{
-		LogLevel:       logLevel,
-		LogPath:        "logs",
-		LogFile:        "",
-		Bind:           bind,
-		Port:           3040,
-		Auth:           auth{AccessTokens: []string{}, AccessTokenPrefix: []string{}},
-		Proxy:          "",
-		ChatGPTBaseUrl: "https://chatgpt.com",
-		ChatGPTs:       []chatgpt{},
+		LogLevel:                     logLevel,
+		LogPath:                      "logs",
+		LogFile:                      "",
+		Bind:                         bind,
+		Port:                         3040,
+		Auth:                         auth{AccessTokens: []string{}, AccessTokenPrefix: []string{}},
+		Proxy:                        "",
+		ChatGPTBaseUrl:               "https://chatgpt.com",
+		AccountRotationEnabled:       false,
+		AccountRotationWindowMinutes: 60,
+		AccountRotationMaxUses:       5,
+		AccountBadThreshold:          3,
+		ChatGPTs:                     []chatgpt{},
 	}
 }
 
@@ -197,6 +202,12 @@ func normalizeConfig(cfg *app) {
 	}
 	cfg.Auth.AccessTokenPrefix = nonEmptyAccessTokenPrefixes(cfg.Auth.AccessTokenPrefix)
 	pool := token_pool.GetAccessTokenPool()
+	token_pool.Configure(token_pool.Settings{
+		RotationEnabled:       cfg.AccountRotationEnabled,
+		RotationWindowSeconds: int64(cfg.AccountRotationWindowMinutes) * 60,
+		RotationMaxUses:       cfg.AccountRotationMaxUses,
+		BadThreshold:          cfg.AccountBadThreshold,
+	})
 	pool.Reset()
 	for _, account := range cfg.ChatGPTs {
 		token := strings.TrimSpace(account.AccessToken)
@@ -463,6 +474,26 @@ func applyEnvOverrides(cfg *app) {
 	}
 	if value := strings.TrimSpace(os.Getenv("CHATGPT_BASE_URL")); value != "" {
 		cfg.ChatGPTBaseUrl = value
+	}
+	if value := strings.TrimSpace(os.Getenv("ACCOUNT_ROTATION_ENABLED")); value != "" {
+		if parsed, err := strconv.ParseBool(value); err == nil {
+			cfg.AccountRotationEnabled = parsed
+		}
+	}
+	if value := strings.TrimSpace(os.Getenv("ACCOUNT_ROTATION_WINDOW_MINUTES")); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.AccountRotationWindowMinutes = parsed
+		}
+	}
+	if value := strings.TrimSpace(os.Getenv("ACCOUNT_ROTATION_MAX_USES")); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.AccountRotationMaxUses = parsed
+		}
+	}
+	if value := strings.TrimSpace(os.Getenv("ACCOUNT_BAD_THRESHOLD")); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			cfg.AccountBadThreshold = parsed
+		}
 	}
 	if value := strings.TrimSpace(os.Getenv("LOG_LEVEL")); value != "" {
 		cfg.LogLevel = value

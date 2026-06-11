@@ -32,6 +32,7 @@ func sendChatRequest(c *gin.Context, chatReq *chat.Request) (*http.Response, str
 	}
 	conduitToken, err := prepareFConversation(backend, upstreamURL, chatReq)
 	if err != nil {
+		recordAccessTokenFailure(backend.AccAuth, err.Error())
 		return nil, backend.AccAuth, err
 	}
 	body, err := common.Struct2BytesBuffer(chatReq)
@@ -47,6 +48,7 @@ func sendChatRequest(c *gin.Context, chatReq *chat.Request) (*http.Response, str
 	}
 	response, err := backend.HTTP.Request(tls_client_httpi.POST, upstreamURL, headers, cookies, body)
 	if err != nil {
+		recordAccessTokenFailure(backend.AccAuth, err.Error())
 		return nil, backend.AccAuth, fmt.Errorf("upstream request failed: %w", err)
 	}
 	return response, backend.AccAuth, nil

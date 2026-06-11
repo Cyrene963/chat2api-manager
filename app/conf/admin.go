@@ -39,12 +39,16 @@ type AdminChatGPT struct {
 }
 
 type AdminConfig struct {
-	ConfigPath          string         `json:"config_path"`
-	Proxy               string         `json:"proxy"`
-	ChatGPTBaseURL      string         `json:"chatgpt_base_url"`
-	AuthTokens          []AdminSecret  `json:"auth_tokens"`
-	AccessTokenPrefixes []AdminSecret  `json:"access_token_prefixes"`
-	ChatGPTs            []AdminChatGPT `json:"chatgpts"`
+	ConfigPath                   string         `json:"config_path"`
+	Proxy                        string         `json:"proxy"`
+	ChatGPTBaseURL               string         `json:"chatgpt_base_url"`
+	AccountRotationEnabled       *bool          `json:"account_rotation_enabled,omitempty"`
+	AccountRotationWindowMinutes *int           `json:"account_rotation_window_minutes,omitempty"`
+	AccountRotationMaxUses       *int           `json:"account_rotation_max_uses,omitempty"`
+	AccountBadThreshold          *int           `json:"account_bad_threshold,omitempty"`
+	AuthTokens                   []AdminSecret  `json:"auth_tokens"`
+	AccessTokenPrefixes          []AdminSecret  `json:"access_token_prefixes"`
+	ChatGPTs                     []AdminChatGPT `json:"chatgpts"`
 }
 
 func setActiveConfigPath(path string) {
@@ -92,6 +96,18 @@ func SaveAdminConfig(req AdminConfig) (AdminConfig, error) {
 	next := current
 	next.Proxy = strings.TrimSpace(req.Proxy)
 	next.ChatGPTBaseUrl = strings.TrimSpace(req.ChatGPTBaseURL)
+	if req.AccountRotationEnabled != nil {
+		next.AccountRotationEnabled = *req.AccountRotationEnabled
+	}
+	if req.AccountRotationWindowMinutes != nil {
+		next.AccountRotationWindowMinutes = *req.AccountRotationWindowMinutes
+	}
+	if req.AccountRotationMaxUses != nil {
+		next.AccountRotationMaxUses = *req.AccountRotationMaxUses
+	}
+	if req.AccountBadThreshold != nil {
+		next.AccountBadThreshold = *req.AccountBadThreshold
+	}
 	next.Auth.AccessTokens = resolveAdminSecretList(req.AuthTokens, current.Auth.AccessTokens, normalizeAuthToken)
 	next.Auth.AccessTokenPrefix = nonEmptyAccessTokenPrefixes(resolveAdminSecretList(req.AccessTokenPrefixes, current.Auth.AccessTokenPrefix, strings.TrimSpace))
 	if len(nonEmptyAuthTokens(next.Auth.AccessTokens)) == 0 {
@@ -110,12 +126,16 @@ func SaveAdminConfig(req AdminConfig) (AdminConfig, error) {
 
 func adminConfigFromApp(path string, cfg app) AdminConfig {
 	out := AdminConfig{
-		ConfigPath:          path,
-		Proxy:               cfg.Proxy,
-		ChatGPTBaseURL:      cfg.ChatGPTBaseUrl,
-		AuthTokens:          maskedAdminSecrets(cfg.Auth.AccessTokens, normalizeAuthToken),
-		AccessTokenPrefixes: maskedAdminSecrets(cfg.Auth.AccessTokenPrefix, strings.TrimSpace),
-		ChatGPTs:            make([]AdminChatGPT, 0, len(cfg.ChatGPTs)),
+		ConfigPath:                   path,
+		Proxy:                        cfg.Proxy,
+		ChatGPTBaseURL:               cfg.ChatGPTBaseUrl,
+		AccountRotationEnabled:       boolPtr(cfg.AccountRotationEnabled),
+		AccountRotationWindowMinutes: intPtr(cfg.AccountRotationWindowMinutes),
+		AccountRotationMaxUses:       intPtr(cfg.AccountRotationMaxUses),
+		AccountBadThreshold:          intPtr(cfg.AccountBadThreshold),
+		AuthTokens:                   maskedAdminSecrets(cfg.Auth.AccessTokens, normalizeAuthToken),
+		AccessTokenPrefixes:          maskedAdminSecrets(cfg.Auth.AccessTokenPrefix, strings.TrimSpace),
+		ChatGPTs:                     make([]AdminChatGPT, 0, len(cfg.ChatGPTs)),
 	}
 	for i, account := range cfg.ChatGPTs {
 		out.ChatGPTs = append(out.ChatGPTs, AdminChatGPT{
@@ -229,6 +249,10 @@ func writeAdminConfig(path string, original []byte, cfg app) error {
 	root := mappingRoot(&doc)
 	setStringChild(root, "proxy", cfg.Proxy)
 	setStringChild(root, "chatgpt_base_url", cfg.ChatGPTBaseUrl)
+	setBoolChild(root, "account_rotation_enabled", cfg.AccountRotationEnabled)
+	setIntChild(root, "account_rotation_window_minutes", cfg.AccountRotationWindowMinutes)
+	setIntChild(root, "account_rotation_max_uses", cfg.AccountRotationMaxUses)
+	setIntChild(root, "account_bad_threshold", cfg.AccountBadThreshold)
 
 	authNode := ensureMappingChild(root, "auth")
 	setStringSequenceChild(authNode, "access_tokens", cfg.Auth.AccessTokens, normalizeAuthToken)
@@ -244,6 +268,22 @@ func writeAdminConfig(path string, original []byte, cfg app) error {
 
 func setStringChild(root *yaml.Node, key string, value string) {
 	setMappingChild(root, key, &yaml.Node{Kind: yaml.ScalarNode, Value: strings.TrimSpace(value)})
+}
+
+func setBoolChild(root *yaml.Node, key string, value bool) {
+	setMappingChild(root, key, &yaml.Node{Kind: yaml.ScalarNode, Value: fmt.Sprint(value)})
+}
+
+func setIntChild(root *yaml.Node, key string, value int) {
+	setMappingChild(root, key, &yaml.Node{Kind: yaml.ScalarNode, Value: fmt.Sprint(value)})
+}
+
+func boolPtr(value bool) *bool {
+	return &value
+}
+
+func intPtr(value int) *int {
+	return &value
 }
 
 func setStringSequenceChild(root *yaml.Node, key string, values []string, normalize func(string) string) {

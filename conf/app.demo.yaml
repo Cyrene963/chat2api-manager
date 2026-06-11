@@ -26,6 +26,13 @@ proxy: http://127.0.0.1:7890
 # Upstream ChatGPT base URL. Empty value defaults to https://chatgpt.com.
 chatgpt_base_url: https://chatgpt.com
 
+# Optional account-pool policy.
+# When enabled, each account is cooled down after it is used too many times inside the window.
+account_rotation_enabled: false
+account_rotation_window_minutes: 60
+account_rotation_max_uses: 5
+account_bad_threshold: 3
+
 # Account pool used by local sk-* auth keys.
 # Required field per account: access_token.
 # Other fields are optional metadata or auxiliary settings.

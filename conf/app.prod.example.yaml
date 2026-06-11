@@ -16,6 +16,12 @@ proxy: ""
 
 chatgpt_base_url: https://chatgpt.com
 
+# Optional account-pool policy.
+account_rotation_enabled: false
+account_rotation_window_minutes: 60
+account_rotation_max_uses: 5
+account_bad_threshold: 3
+
 # ChatGPT Web account pool. Replace access_token with real ChatGPT Web access tokens.
 chatgpts:
   - id_token: ""

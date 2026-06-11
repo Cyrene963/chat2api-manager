@@ -19,10 +19,22 @@ func runResponsesTextChat(c *gin.Context, apiReq *completions.ApiReq, streamResp
 	}
 	if streamResponses {
 		if completions.HasTools(apiReq) {
-			return streamResponsesFunctionCallingEvents(c, apiReq, resp, responseOptions)
+			result, err := streamResponsesFunctionCallingEvents(c, apiReq, resp, responseOptions)
+			if err == nil {
+				recordAccessTokenOutcome(accessToken, result)
+			}
+			return nil, err
 		}
-		_, err := streamResponsesTextEvents(c, apiReq.Model, resp, responseOptions)
+		result, err := streamResponsesTextEvents(c, apiReq.Model, resp, responseOptions)
+		if err == nil {
+			recordAccessTokenOutcome(accessToken, result)
+		}
 		return nil, err
 	}
-	return handlerResponse(c, apiReq, resp)
+	result, err := handlerResponse(c, apiReq, resp)
+	if err != nil {
+		return nil, err
+	}
+	recordAccessTokenOutcome(accessToken, result)
+	return result, nil
 }

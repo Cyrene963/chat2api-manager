@@ -87,6 +87,19 @@ var adminConfigHTML = []byte(`<!doctype html>
       font-size: 12px;
       font-weight: 600;
     }
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      color: var(--text);
+    }
+    .checkbox input {
+      width: 16px;
+      height: 16px;
+      padding: 0;
+      accent-color: var(--accent);
+    }
     .app {
       min-height: 100vh;
       display: grid;
@@ -342,6 +355,21 @@ var adminConfigHTML = []byte(`<!doctype html>
             <label>ChatGPT base URL
               <input id="baseUrl" placeholder="https://chatgpt.com">
             </label>
+            <label class="checkbox">
+              <input id="rotationEnabled" type="checkbox">
+              <span>Account rotation</span>
+            </label>
+            <div class="grid-2">
+              <label>Rotation window (min)
+                <input id="rotationWindow" type="number" min="1" step="1" placeholder="60">
+              </label>
+              <label>Max uses / window
+                <input id="rotationMaxUses" type="number" min="1" step="1" placeholder="5">
+              </label>
+            </div>
+            <label>Bad mark threshold
+              <input id="badThreshold" type="number" min="1" step="1" placeholder="3">
+            </label>
           </div>
         </div>
 
@@ -386,6 +414,10 @@ var adminConfigHTML = []byte(`<!doctype html>
       configPath: document.getElementById('configPath'),
       proxy: document.getElementById('proxy'),
       baseUrl: document.getElementById('baseUrl'),
+      rotationEnabled: document.getElementById('rotationEnabled'),
+      rotationWindow: document.getElementById('rotationWindow'),
+      rotationMaxUses: document.getElementById('rotationMaxUses'),
+      badThreshold: document.getElementById('badThreshold'),
       authTokens: document.getElementById('authTokens'),
       prefixes: document.getElementById('prefixes'),
       accounts: document.getElementById('accounts'),
@@ -432,6 +464,11 @@ var adminConfigHTML = []byte(`<!doctype html>
       return { index: -1, set: false, masked: '', value: '' };
     }
 
+    function intValue(value, fallback) {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
     function newAccount() {
       return {
         index: -1,
@@ -450,6 +487,10 @@ var adminConfigHTML = []byte(`<!doctype html>
     function normalizeLoadedConfig(cfg) {
       cfg.auth_tokens = (cfg.auth_tokens || []).map(secretItem);
       cfg.access_token_prefixes = (cfg.access_token_prefixes || []).map(secretItem);
+      cfg.account_rotation_enabled = Boolean(cfg.account_rotation_enabled);
+      cfg.account_rotation_window_minutes = intValue(cfg.account_rotation_window_minutes, 60);
+      cfg.account_rotation_max_uses = intValue(cfg.account_rotation_max_uses, 5);
+      cfg.account_bad_threshold = intValue(cfg.account_bad_threshold, 3);
       cfg.chatgpts = (cfg.chatgpts || []).map((account) => ({
         index: Number.isInteger(account.index) ? account.index : -1,
         id_token: secretItem(account.id_token),
@@ -598,6 +639,10 @@ var adminConfigHTML = []byte(`<!doctype html>
       els.configPath.textContent = state.config.config_path || 'Config file loaded';
       els.proxy.value = state.config.proxy || '';
       els.baseUrl.value = state.config.chatgpt_base_url || '';
+      els.rotationEnabled.checked = Boolean(state.config.account_rotation_enabled);
+      els.rotationWindow.value = state.config.account_rotation_window_minutes || 60;
+      els.rotationMaxUses.value = state.config.account_rotation_max_uses || 5;
+      els.badThreshold.value = state.config.account_bad_threshold || 3;
       renderSecretList(els.authTokens, state.config.auth_tokens, 'Key', 'new local API key');
       renderSecretList(els.prefixes, state.config.access_token_prefixes, 'Prefix', 'private-prefix-');
       renderAccounts();
@@ -626,6 +671,10 @@ var adminConfigHTML = []byte(`<!doctype html>
       }
       state.config.proxy = els.proxy.value;
       state.config.chatgpt_base_url = els.baseUrl.value;
+      state.config.account_rotation_enabled = els.rotationEnabled.checked;
+      state.config.account_rotation_window_minutes = intValue(els.rotationWindow.value, 60);
+      state.config.account_rotation_max_uses = intValue(els.rotationMaxUses.value, 5);
+      state.config.account_bad_threshold = intValue(els.badThreshold.value, 3);
       setStatus('Saving...', '');
       try {
         state.config = normalizeLoadedConfig(await requestConfig('PUT', state.config));
