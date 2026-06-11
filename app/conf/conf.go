@@ -133,8 +133,12 @@ func setApp(next app) {
 
 func defaultApp() app {
 	return app{
-		Bind: "0.0.0.0",
-		Port: 3040,
+		Bind:                         "0.0.0.0",
+		Port:                         3040,
+		AccountRotationEnabled:       false,
+		AccountRotationWindowMinutes: 60,
+		AccountRotationMaxUses:       5,
+		AccountBadThreshold:          3,
 	}
 }
 

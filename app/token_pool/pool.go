@@ -41,10 +41,13 @@ type AccessToken struct {
 	RotationWindowStartAt int64  `yaml:"-"`
 	RotationUseCount      int    `yaml:"-"`
 	FailureCount          int    `yaml:"-"`
+	EmptyCount            int    `yaml:"-"`
 	MarkedAt              int64  `yaml:"-"`
 	MarkedReason          string `yaml:"-"`
 	LastFailureAt         int64  `yaml:"-"`
 	LastFailureReason     string `yaml:"-"`
+	LastEmptyAt           int64  `yaml:"-"`
+	LastEmptyReason       string `yaml:"-"`
 }
 
 func Configure(next Settings) {
@@ -195,7 +198,9 @@ func (a *AccessTokenPool) RecordSuccess(token string) {
 			continue
 		}
 		v.FailureCount = 0
+		v.EmptyCount = 0
 		v.LastFailureReason = ""
+		v.LastEmptyReason = ""
 		return
 	}
 }
@@ -214,6 +219,7 @@ func (a *AccessTokenPool) RecordFailure(token string, reason string) bool {
 			continue
 		}
 		v.FailureCount++
+		v.EmptyCount = 0
 		v.LastFailureAt = now
 		v.LastFailureReason = strings.TrimSpace(reason)
 		if v.FailureCount >= cfg.BadThreshold {
@@ -221,6 +227,38 @@ func (a *AccessTokenPool) RecordFailure(token string, reason string) bool {
 			v.MarkedReason = v.LastFailureReason
 			if v.MarkedReason == "" {
 				v.MarkedReason = "marked after repeated failures"
+			}
+			v.CanUseAt = now
+			v.RotationCanUseAt = now
+			return true
+		}
+		return false
+	}
+	return false
+}
+
+func (a *AccessTokenPool) RecordEmptyResult(token string, reason string) bool {
+	token = normalizeTokenString(token)
+	if token == "" {
+		return false
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	cfg := currentSettings()
+	now := nowUnix()
+	for _, v := range a.AccessTokens {
+		if normalizeTokenString(v.Token) != token || v.MarkedAt > 0 {
+			continue
+		}
+		v.EmptyCount++
+		v.FailureCount = 0
+		v.LastEmptyAt = now
+		v.LastEmptyReason = strings.TrimSpace(reason)
+		if v.EmptyCount >= cfg.BadThreshold {
+			v.MarkedAt = now
+			v.MarkedReason = v.LastEmptyReason
+			if v.MarkedReason == "" {
+				v.MarkedReason = "empty upstream response"
 			}
 			v.CanUseAt = now
 			v.RotationCanUseAt = now
@@ -269,4 +307,30 @@ func normalizeTokenString(token string) string {
 	token = strings.TrimSpace(token)
 	token = strings.TrimPrefix(token, "Bearer ")
 	return strings.TrimSpace(token)
+}
+
+func ShouldIgnoreError(err error) bool {
+	if err == nil {
+		return false
+	}
+	lower := strings.ToLower(strings.TrimSpace(err.Error()))
+	if lower == "" {
+		return false
+	}
+	for _, needle := range []string{
+		"context deadline exceeded",
+		"i/o timeout",
+		"timeout",
+		"client closed",
+		"context canceled",
+		"connection reset by peer",
+		"broken pipe",
+		"unexpected eof",
+		"eof",
+	} {
+		if strings.Contains(lower, needle) {
+			return true
+		}
+	}
+	return false
 }

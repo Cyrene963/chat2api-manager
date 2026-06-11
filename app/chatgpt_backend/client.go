@@ -59,7 +59,9 @@ func New(token string, retry int) (*Client, error) {
 	if accessToken := pool.GetAccessToken(); accessToken != nil && accessToken.Token != "" {
 		client, err := newClient(accessToken.Token, accessToken.Proxy)
 		if err != nil {
-			pool.RecordFailure(accessToken.Token, err.Error())
+			if !token_pool.ShouldIgnoreError(err) {
+				pool.RecordFailure(accessToken.Token, err.Error())
+			}
 			if retry > 0 {
 				return New(token, retry-1)
 			}

@@ -75,3 +75,62 @@ func TestRecordFailureMarksBadToken(t *testing.T) {
 		t.Fatalf("marked token should not be reusable, got %+v", got)
 	}
 }
+
+func TestRecordEmptyResultMarksAfterThreshold(t *testing.T) {
+	oldNow := nowUnix
+	oldSettings := currentSettings()
+	defer func() {
+		nowUnix = oldNow
+		Configure(oldSettings)
+	}()
+
+	nowUnix = func() int64 { return 3000 }
+	Configure(Settings{BadThreshold: 3})
+
+	pool := &AccessTokenPool{
+		AccessTokens: []*AccessToken{
+			{Token: "Bearer token-c", ExpiresAt: 4000},
+		},
+		index: -1,
+	}
+
+	if marked := pool.RecordEmptyResult("Bearer token-c", "empty upstream response"); marked {
+		t.Fatal("first empty result should not mark token")
+	}
+	if marked := pool.RecordEmptyResult("Bearer token-c", "empty upstream response"); marked {
+		t.Fatal("second empty result should not mark token")
+	}
+	if marked := pool.RecordEmptyResult("Bearer token-c", "empty upstream response"); !marked {
+		t.Fatal("third empty result should mark token")
+	}
+	if got := pool.MarkedSize(); got != 1 {
+		t.Fatalf("marked size = %d, want 1", got)
+	}
+}
+
+func TestRecordSuccessResetsCounters(t *testing.T) {
+	oldNow := nowUnix
+	oldSettings := currentSettings()
+	defer func() {
+		nowUnix = oldNow
+		Configure(oldSettings)
+	}()
+
+	nowUnix = func() int64 { return 4000 }
+	Configure(Settings{BadThreshold: 3})
+
+	pool := &AccessTokenPool{
+		AccessTokens: []*AccessToken{
+			{Token: "Bearer token-d", ExpiresAt: 5000, FailureCount: 2, EmptyCount: 2},
+		},
+		index: -1,
+	}
+
+	pool.RecordSuccess("Bearer token-d")
+	if got := pool.AccessTokens[0].FailureCount; got != 0 {
+		t.Fatalf("failure count = %d, want 0", got)
+	}
+	if got := pool.AccessTokens[0].EmptyCount; got != 0 {
+		t.Fatalf("empty count = %d, want 0", got)
+	}
+}
