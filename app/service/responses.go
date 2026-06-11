@@ -2,12 +2,10 @@ package service
 
 import (
 	"chat2api/app/common"
-	"chat2api/app/conf"
 	"chat2api/app/types/completions"
 	"chat2api/app/types/responses"
 	"chat2api/pkg/logx"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,17 +15,6 @@ func Responses(c *gin.Context) {
 	apiReq := &responses.ApiReq{}
 	if err := c.BindJSON(apiReq); err != nil {
 		common.ErrorResponse(c, http.StatusBadRequest, "Invalid parameter", nil)
-		return
-	}
-	if shouldUseOpenAIResponses(apiReq) {
-		if strings.TrimSpace(conf.GetApp().OpenAIApiKey) == "" {
-			common.ErrorResponse(c, http.StatusBadRequest, "openai_api_key is required for deep research / OpenAI Responses mode", nil)
-			return
-		}
-		if err := runOpenAIResponses(c, apiReq); err != nil {
-			logx.WithContext(c.Request.Context()).Error(err.Error())
-			common.ErrorResponse(c, http.StatusBadGateway, "openai responses request failed", err.Error())
-		}
 		return
 	}
 	if hasResponsesImageGenerationTool(apiReq) {

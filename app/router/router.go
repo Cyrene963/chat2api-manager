@@ -124,8 +124,6 @@ func NewEngine() *gin.Engine {
 	v1Router.POST("/chat/completions", service.Completions)
 	v1Router.OPTIONS("/responses", nil)
 	v1Router.POST("/responses", service.Responses)
-	v1Router.OPTIONS("/responses/:id", nil)
-	v1Router.GET("/responses/:id", service.OpenAIResponseByID)
 
 	return engine
 }

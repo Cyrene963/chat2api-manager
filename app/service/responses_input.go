@@ -153,15 +153,6 @@ func responseToolChoiceType(value interface{}) string {
 	}
 }
 
-func hasResponsesNonImageTools(tools []responses.Tool) bool {
-	for _, tool := range tools {
-		if strings.TrimSpace(tool.Type) != "" && strings.TrimSpace(tool.Type) != "image_generation" {
-			return true
-		}
-	}
-	return false
-}
-
 func responseStringValue(value interface{}, fallback string) string {
 	if s, ok := value.(string); ok && strings.TrimSpace(s) != "" {
 		return s

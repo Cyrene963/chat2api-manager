@@ -269,6 +269,14 @@ gpt-5.5-pro
 
 也就是说，本项目可以帮你选择 Pro 模型，但不能凭空给普通账号开通 Pro，也不能保证一定能强制 Extended/Heavy 思考模式。最终取决于账号权限和上游当前接受的请求格式。
 
+## 关于 Deep Research
+
+本项目不走 OpenAI API 直连。`/v1/chat/completions` 和 `/v1/responses` 都会走 ChatGPT Web 账号池。
+
+`model` 会原样传给 ChatGPT Web。如果账号本身有 Deep Research 权限，并且 ChatGPT Web 上游接受对应模型名或模式，本项目会按同一条账号池链路转发。
+
+如果 Deep Research 还需要额外的 ChatGPT Web 请求字段，就需要先抓取真实 ChatGPT Web 请求，再把字段补进 Web 上游 payload。当前项目不会凭空把普通请求变成完整 Deep Research 任务。
+
 ## 配置文件
 
 服务读取：
@@ -291,7 +299,7 @@ conf/app.demo.yaml
 
 ## 安全提醒
 
-- 不要把 GitHub token、ChatGPT Web access token、OpenAI API key 提交到仓库。
+- 不要把 GitHub token 或 ChatGPT Web access token 提交到仓库。
 - WebUI 不会回显已保存的真实 token，只显示遮罩值。
 - 保存远程配置时会生成 `.bak` 备份。
 - 生产环境请放在内网、反代鉴权或防火墙后面。

@@ -23,7 +23,6 @@ NewAPI / sub2api / OpenAI-compatible client
 - Manage `auth.access_tokens` for NewAPI/sub2api.
 - Manage `chatgpts` account-pool entries with real ChatGPT Web `access_token` values.
 - Test `/v1/chat/completions` and `/v1/responses`.
-- Optionally proxy OpenAI Responses / deep research when `OPENAI_API_KEY` is set.
 - Import and export `app.dev.yaml`.
 
 ## Quick Start
@@ -231,33 +230,17 @@ On Linux Docker, `host.docker.internal` may not be enabled by default. The host 
 
 The account token must already have the required Pro entitlement.
 
-## OpenAI Deep Research
+## Deep Research
 
-If you set `OPENAI_API_KEY` or `openai_api_key`, `/v1/responses` can proxy directly to the OpenAI Responses API.
+This project does not use direct OpenAI API passthrough. `/v1/chat/completions` and `/v1/responses` both route through the ChatGPT Web account pool.
 
-Use the official deep research models:
+Model names are passed to ChatGPT Web unchanged. If a ChatGPT Web account has access to a Deep Research model or mode and the upstream accepts that model slug, this proxy will send it through the same account-pool path.
 
-```text
-o3-deep-research
-o4-mini-deep-research
-```
-
-Typical request shape:
-
-```json
-{
-  "model": "o3-deep-research",
-  "background": true,
-  "reasoning": { "summary": "auto" },
-  "tools": [{ "type": "web_search_preview" }]
-}
-```
-
-The backend also exposes `GET /v1/responses/{id}` so you can poll background jobs.
+If Deep Research requires extra ChatGPT Web request fields beyond `model`, those fields still need to be captured from the real ChatGPT Web request and added to the Web upstream payload.
 
 ## Security
 
-- Do not commit GitHub tokens, ChatGPT Web access tokens, or OpenAI API keys.
+- Do not commit GitHub tokens or ChatGPT Web access tokens.
 - The WebUI masks saved tokens.
 - Remote saves create a `.bak` backup.
 - Put the admin UI behind a firewall, private network, or extra authentication in production.
